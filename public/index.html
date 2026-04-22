@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>工作吐槽板</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      color: #ff6b6b;
+      text-shadow: 0 0 12px #ff6b6b88;
+    }
+
+    p.subtitle {
+      color: #aaa;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+
+    #vent-btn {
+      background: #e63946;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 22px 60px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 24px #e6394688, 0 4px 16px #00000066;
+      transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+      letter-spacing: 2px;
+      margin-bottom: 40px;
+      user-select: none;
+    }
+
+    #vent-btn:hover {
+      background: #c1121f;
+      box-shadow: 0 0 40px #e63946cc, 0 4px 24px #00000088;
+    }
+
+    #vent-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 0 12px #e6394688;
+    }
+
+    #vent-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .blackboard {
+      background: #1b3a2e;
+      border: 4px solid #4a7c59;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 700px;
+      min-height: 260px;
+      padding: 24px;
+      box-shadow: inset 0 2px 16px #00000066, 0 4px 24px #00000044;
+      position: relative;
+    }
+
+    .blackboard-title {
+      font-size: 1rem;
+      color: #a8d5b5;
+      border-bottom: 2px dashed #4a7c59;
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+      letter-spacing: 1px;
+    }
+
+    #posts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .post-item {
+      background: #ffffff14;
+      border: 1px solid #4a7c5966;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 1.1rem;
+      color: #c8f5d5;
+      animation: popIn 0.3s ease;
+    }
+
+    .post-item .word {
+      font-weight: bold;
+      color: #ff6b6b;
+      font-size: 1.2rem;
+    }
+
+    .post-item .time {
+      font-size: 0.7rem;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .empty-msg {
+      color: #556b5f;
+      font-style: italic;
+      font-size: 0.95rem;
+    }
+
+    #flash {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle, #e6394640, transparent 70%);
+      transition: opacity 0.15s;
+      z-index: 100;
+    }
+
+    #flash.active {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="flash"></div>
+
+  <h1>🤬 工作吐槽板</h1>
+  <p class="subtitle">今天上班很难受？点下面这个大红按钮发泄一下！</p>
+
+  <button id="vent-btn">💢 发泄！</button>
+
+  <div class="blackboard">
+    <div class="blackboard-title">📋 黑板 — 大家的心声</div>
+    <div id="posts-container">
+      <span class="empty-msg">还没有人发泄过，快来第一个！</span>
+    </div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('vent-btn');
+    const container = document.getElementById('posts-container');
+    const flash = document.getElementById('flash');
+
+    function formatTime(isoString) {
+      const d = new Date(isoString);
+      return d.toLocaleString('zh-CN', { hour12: false });
+    }
+
+    function renderPosts(posts) {
+      if (posts.length === 0) {
+        container.innerHTML = '<span class="empty-msg">还没有人发泄过，快来第一个！</span>';
+        return;
+      }
+      container.innerHTML = posts
+        .slice()
+        .reverse()
+        .map(p => `
+          <div class="post-item">
+            <div class="word">${p.word}</div>
+            <div class="time">${formatTime(p.timestamp)}</div>
+          </div>
+        `)
+        .join('');
+    }
+
+    async function loadPosts() {
+      const res = await fetch('/api/posts');
+      const posts = await res.json();
+      renderPosts(posts);
+    }
+
+    async function vent() {
+      btn.disabled = true;
+      flash.classList.add('active');
+      setTimeout(() => flash.classList.remove('active'), 200);
+
+      try {
+        const res = await fetch('/api/posts', { method: 'POST' });
+        const post = await res.json();
+
+        const emptyMsg = container.querySelector('.empty-msg');
+        if (emptyMsg) emptyMsg.remove();
+
+        const item = document.createElement('div');
+        item.className = 'post-item';
+        item.innerHTML = `
+          <div class="word">${post.word}</div>
+          <div class="time">${formatTime(post.timestamp)}</div>
+        `;
+        container.prepend(item);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    btn.addEventListener('click', vent);
+    loadPosts();
+  </script>
+</body>
+</html>
