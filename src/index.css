@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  color: #e5eef9;
+  background: #09111f;
+  font-family:
+    "Outfit", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
